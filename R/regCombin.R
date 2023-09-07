@@ -213,8 +213,8 @@ regCombin <- function(Ldata, Rdata,
         sel_x = matrix(1,dim(Ldata)[1],1)
         sel_y = matrix(1,dim(Rdata)[1],1)
         for(ddd in 1:dimXc){
-          sel_x =  sel_x & (Ldata[,ddd]==val[ddd])
-          sel_y =  sel_y & (Rdata[,ddd]==val[ddd])
+          sel_x =  sel_x & (Ldata[,c_var[ddd]]==val[ddd])
+          sel_y =  sel_y & (Rdata[,c_var[ddd]]==val[ddd])
         }
         sel_x = matrix( sel_x,dim(Ldata)[1],1)
         sel_y = matrix( sel_y,dim(Rdata)[1],1)
@@ -543,7 +543,7 @@ regCombin <- function(Ldata, Rdata,
     }
 
 
-    if(!is.null(values) & method!="Variance"){
+    if(!is.null(values) & method!="Variance" & dimXnc==1){
 
 
       out00_agg = matrix(0,dimXnc,2)

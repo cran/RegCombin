@@ -1,4 +1,4 @@
-cdb3fbaf228e9e8f2d0307cf125bb5bb *DESCRIPTION
+b6adffcadec0ff9fa828af777e65e0ae *DESCRIPTION
 e29ffb67e120f30b4a2cb85e21e07642 *NAMESPACE
 4e73cc95192075af6ebb0c09c43c7c03 *R/AS_bounds.R
 c9427374d1b71b41213ab9144ef5cf08 *R/AStest.R
@@ -18,7 +18,7 @@ a9f4f7c3f077bc54d5502bf1cf64480c *R/create_values.R
 e8279e35c5c54079fd75cf887dd801e9 *R/ewcdf.R
 e0a31bc4f3a22f01c4f6ffcd81a6231a *R/objective_support.R
 1f35d4d907e8cfb97b4984c2bb1327ae *R/point_ident_test.R
-1d4920d83887424eb0b9fb61ed6cbeb2 *R/regCombin.R
+c2e803d6a8433bd6372582a6d9431282 *R/regCombin.R
 ffadf5a6b695f3821dd6b1c8ef33fd5a *R/regCombin_profile.R
 6d4fba7c03e759a72d25c76bd0638e99 *R/sampling_rule.R
 b0cc1a3868faceb1f770f9f3ceec1121 *R/select_epsilon.R
