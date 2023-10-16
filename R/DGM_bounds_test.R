@@ -157,21 +157,20 @@ DGM_bounds_test <- function(Ldata, Rdata,values,
   if(outside ==FALSE & nbCores>1){
     ### subsampling (B samples) parallel nbCores=10
     sfInit(parallel = TRUE, cpus = nbCores, type = "SOCK")
-    # sfExportAll( except = list_ex)
 
     sfExport( "Xc_x","Xnc", "Xc_y" ,"Y",
-              "values", "sam0","refs0",
-              "out_var",  "nc_var", "c_var", "constraint",
-              "nc_sign", "c_sign",
-              "nbCores",
-              "eps_default", "nb_pts","Bsamp" ,"grid",
-              "weights_x","weights_y","outside",  "meth",
-              "modeNA", "version" ,
-              "version_sel",
-              "alpha" , "projections", "R2bound" ,"values_sel",
-              "ties","dimXc","dimXnc","limit")
+    "values", "sam0","refs0",
+    "out_var",  "nc_var", "c_var", "constraint",
+    "nc_sign", "c_sign",'compute_ratio',
+    "nbCores","sampling_rule",
+    "eps_default", "nb_pts","Bsamp" ,"grid",
+    "weights_x","weights_y","outside",  "meth",
+    "modeNA", "version" ,
+    "version_sel",
+    "alpha" , "projections", "R2bound" ,"values_sel",
+    "ties","dimXc","dimXnc","limit")
 
-    # sfExport('wtd.var','Norm','ceil','eye')
+    # sfExportAll( )
     # sfLibrary(R.matlab)
     # sfLibrary(pracma)
     # sfLibrary(Hmisc)

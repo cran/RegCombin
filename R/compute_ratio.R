@@ -146,13 +146,13 @@ compute_ratio <- function(x_eps0,Xp,Yp,
     ratio = for_critY /for_critind
     ratio[is.na(  ratio)] = 10^6
 
-    kp_d = max(ceil(length(ratio)*eps),2)
+    kp_d = max(floor(length(ratio)*eps)+1,2)
     kp_u = length(ratio)- max(floor(length(ratio)*eps),2)
     grid_I1 = 1:length(ratio)
     select0 = (grid_I1 >= kp_d) & (grid_I1<= kp_u)
 
     if(sum(select0)==0){
-      select0[ceil(length(ratio)/2)] = TRUE
+      select0[floor(length(ratio)/2)+1] = TRUE
     }
     ratio = ratio[select0]
 

@@ -25,6 +25,7 @@
 #' @param R2bound the lower bound on the R2 of the long regression if any. Default is NULL.
 #' @param values_sel the selected values of Xc for the conditioning. Default is NULL.
 #' @param ties Boolean indicating if there are ties in the dataset. Default is FALSE.
+#' @param modeNA indicates if NA introduced if the interval is empty. Default is FALSE.
 #'
 #' @return  a list containing:
 #'
@@ -58,19 +59,19 @@ compute_radial <- function(sample1 = NULL,Xc_x,Xnc,Xc_y,Y,values,
                            refs0=NULL,type="both",meth="adapt",
                            version = "first", R2bound=NULL,
                            values_sel = NULL,
-                           ties = FALSE ){
-
-
+                           ties = FALSE,modeNA=FALSE ){
+  
+  
   winsor= FALSE
   Rs = 0
-
+  
   # sample1 = NULL
   if(is.null(eps_default0)){
     learn_eps = TRUE
   }else{
     learn_eps = FALSE
   }
-
+  
   mat_var_low= NULL
   if(is.null(weights_x)){
     weights_x= rep(1/dim(Xnc)[1],dim(Xnc)[1])
@@ -78,22 +79,22 @@ compute_radial <- function(sample1 = NULL,Xc_x,Xnc,Xc_y,Y,values,
   if(is.null(weights_y)){
     weights_y= rep(1/length(Y),length(Y))
   }
-
+  
   # save original weights
   weights_xs <-  weights_x
   weights_ys <-  weights_y
-
+  
   # mn =0.5
   if(!is.null(sample1)){
-
-
+    
+    
     n_x = dim(Xnc)[1]
     n_y = dim(Y)[1]
     n_xy = min(n_x,n_y)
     T_xy  = (n_y/(n_x+n_y))*n_x
-
+    
     bs = floor(sampling_rule(T_xy))
-
+    
     bb = sample(1:n_x,bs, replace=FALSE)
     if(!is.null(Xc_x)){
       Xc_xb = matrix(Xc_x[bb,],bs,dimXc)
@@ -102,8 +103,8 @@ compute_radial <- function(sample1 = NULL,Xc_x,Xnc,Xc_y,Y,values,
     weights_x =  matrix(weights_x[bb],bs,1)
     weights_x = weights_x/sum(weights_x)
     n_x = dim(Xncb)[1]
-
-
+    
+    
     # n_y = dim(Y)[1]
     bby = sample(1:n_y,bs, replace=FALSE)
     if(!is.null(Xc_y)){
@@ -113,58 +114,58 @@ compute_radial <- function(sample1 = NULL,Xc_x,Xnc,Xc_y,Y,values,
     weights_y =  matrix(weights_y[bby],bs,1)
     weights_y = weights_y/sum(weights_y)
     n_y = dim(Yb)[1]
-
+    
   }else{
-
+    
     ## point estimate
     Xc_xb =Xc_x
     Xncb = Xnc
     Xc_yb = Xc_y
     Yb = Y
-
+    
   }
-
+  
   if(!is.null(R2bound)){
-
+    
     ## compute short regression
     datay <- cbind(Yb, Xc_yb)
     datay <- as.data.frame(datay)
     for(j in 1:(dim(datay)[2]-1)){
       datay[,j+1] <- as.factor( datay[,j+1])
     }
-
+    
     form = paste0(colnames(datay)[1],"~ ")
     form = paste0(form,paste0(colnames(datay)[-c(1)],collapse="+"))
-
+    
     datay$weights_y <- weights_y
     short_reg <- lm(form, data = datay, weights= weights_y )
     short_reg_s <- summary(short_reg)
     Rs = short_reg_s$r.squared
-
+    
     # rm(datay)
   }
-
+  
   if(!is.null(values)){
-
+    
     n_x_all = dim(Xc_xb)[1]
     n_y_all = dim(Xc_yb)[1]
-
+    
     mat_Yk= matrix(NA,dim(values)[1],1)
     mat_Xk= matrix(NA,dim(values)[1],dimXnc)
     Dmat_Yk= matrix(NA,dim(values)[1],1)
     Dmat_Xk=matrix(NA,dim(values)[1],dimXnc)
-
+    
     mat_var_unc= matrix(0,dim(values)[1],dim(sam0)[1])
     mat_var= matrix(0,dim(values)[1],dim(sam0)[1])
     mat_var_low= matrix(0,dim(values)[1],dim(sam0)[1])
-
+    
     if(!is.null(R2bound)){
       r2bound_M= matrix(0,dim(values)[1],dim(sam0)[1])
     }
     nbV = dim(values)[1]
-
+    
     if(!is.null(constraint)){
-
+      
       if(length(constraint)==1){
         if(length(values_sel$selected)< length(values_sel$old)){
           grouped0 = TRUE # for monotone, convex, do not consider 0.
@@ -179,9 +180,9 @@ compute_radial <- function(sample1 = NULL,Xc_x,Xnc,Xc_y,Y,values,
         }
       }
       # compute matrix R (put as a function)
-
+      
       selected <- as.numeric(rownames(values_sel$selected))
-
+      
       if(length(constraint)==1){
         cptR <- compute_constraints(constraint,values,values_sel,indexes_k=NULL,nbV, grouped0,ind=NULL,c_sign)
         R <- cptR$R
@@ -192,7 +193,7 @@ compute_radial <- function(sample1 = NULL,Xc_x,Xnc,Xc_y,Y,values,
         }else{
           indR  = length(R[,1])
         }
-
+        
         non_na_indexes=1
         R_all=vector("list")
         pp0_all=vector("list")
@@ -202,13 +203,13 @@ compute_radial <- function(sample1 = NULL,Xc_x,Xnc,Xc_y,Y,values,
         # get the indices of non null elements in constraints
         non_na_indexes <- (1:length(constraint))[!is.na(constraint)]
         # j=1
-
+        
         grouped0 = FALSE
         R_all=vector("list")
         pp0_all=vector("list")
         indR = 0
         for(j in non_na_indexes){
-
+          
           R=NULL
           pp0=NULL
           # for all them k
@@ -216,15 +217,15 @@ compute_radial <- function(sample1 = NULL,Xc_x,Xnc,Xc_y,Y,values,
           values_selected_k <- as.matrix(values_sel$selected[,-c(j)])
           values_selected_k1 <- as.matrix(values_selected_k[!duplicated(values_selected_k),])
           #jj=1
-
+          
           for(jj in 1:length(values_selected_k1[,1])){
             curr_k = values_selected_k1[jj,]
             indexes_k = matrix(1,dim(values_selected_k)[1],1)
             for(ddd in 1:dim(values_selected_k)[2]){
               indexes_k =     indexes_k & (values_selected_k[,ddd]== curr_k[ddd])
             }
-
-
+            
+            
             values_k <- values_sel$selected[ indexes_k,]
             nbV_k = dim( values_k)[1]
             if(  nbV_k>1){
@@ -239,26 +240,26 @@ compute_radial <- function(sample1 = NULL,Xc_x,Xnc,Xc_y,Y,values,
               pp0 = rbind(pp0,pp0_k)
             }
           }
-
+          
           inna <- rowMeans(is.na(R)) >0
           R <- R[!inna,]
           pp0 <- pp0[!inna,]
-
+          
           # values_sel
           if(is.null(dim(R))){
             indR =1 + indR
           }else{
             indR = length(R[,1])+ indR
           }
-
+          
           # R_k <- na.omit(R_k)
           R_all[[j]] <-R
           pp0_all[[j]] <- pp0
         }
-
+        
       }
-
-
+      
+      
       refsXcx = matrix(NA,dim(Xncb)[1],dim(values)[1])
       refsXcy = matrix(NA,dim(Yb)[1],dim(values)[1])
       for( k in 1:dim(values)[1]){
@@ -280,13 +281,13 @@ compute_radial <- function(sample1 = NULL,Xc_x,Xnc,Xc_y,Y,values,
         refsXcx[,k] <- sel_x/sum(sel_x*weights_x)
         refsXcy[,k] <- sel_y/sum(sel_y*weights_y)
       }
-
-
+      
+      
       ############################################################################################
       ################ conditional means & variance computation of the constraint ################
       s0=  (sam0%*%t(Xncb))
-
-
+      
+      
       mat_Yk= matrix(NA,indR,1)
       var_Yk= matrix(NA,indR,1)
       mat_Xk= matrix(NA,indR,dim(s0)[1])
@@ -298,30 +299,30 @@ compute_radial <- function(sample1 = NULL,Xc_x,Xnc,Xc_y,Y,values,
         constraint1 = constraint[j]
         R <- R_all[[j]]
         pp0 <- pp0_all[[j]]
-
-
-
+        
+        
+        
         if(is.null(dim(R))){
           lR =1
         }else{
           lR= length(R[,1])
         }
-
+        
         for(k in 1:lR){ ## for all the constraints on Xc
           # jj=1
           interx=matrix(0,dim(Xncb)[1],1)
           intery=matrix(0,dim(Yb)[1],1)
-
+          
           if(constraint1=="convex" || constraint1=="concave"){
-
+            
             if(lR==1){
               r =  R[as.numeric(pp0)]
             }else{
               r =  R[k,as.numeric(pp0[k,])]
             }
-
-
-
+            
+            
+            
             for( jj in 1:3){
               if(lR==1){
                 ref_p = pp0[jj]
@@ -331,29 +332,29 @@ compute_radial <- function(sample1 = NULL,Xc_x,Xnc,Xc_y,Y,values,
               interx=  interx + refsXcx[,as.numeric(ref_p)]*r[jj]
               intery=  intery + refsXcy[,as.numeric(ref_p)]*r[jj]
             }
-
+            
           }else if(constraint1 =="nondecreasing" || constraint1 =="nonincreasing" || constraint1 =="sign" || constraint1 =="IV"){
             if(lR==1){
               r =  R[as.numeric(pp0)]
             }else{
               r =  R[k,as.numeric(pp0[k,])]
             }
-
+            
             for( jj in 1:2){
               if(lR==1){
                 ref_p = pp0[jj]
               }else{
                 ref_p = pp0[k,jj]
               }
-
+              
               interx=  interx + refsXcx[,as.numeric(ref_p)]*r[jj]
               intery=  intery + refsXcy[,as.numeric(ref_p)]*r[jj]
             }
-
+            
           }else if(constraint1 =="nondecreasing_convex" || constraint1 =="nondecreasing_concave" || constraint1 =="nonincreasing_convex" || constraint1 =="nonincreasing_concave"){
-
+            
             if(k <= dim(pp0)[1]){
-
+              
               r =  R[k,as.numeric(pp0[k,])]
               for( jj in 1:3){
                 interx=  interx + refsXcx[,as.numeric(pp0[k,jj])]*r[jj]
@@ -368,31 +369,31 @@ compute_radial <- function(sample1 = NULL,Xc_x,Xnc,Xc_y,Y,values,
               }
             }
           }
-
+          
           # if(dimXnc==1){
           inter1 = matrix(1,dim(s0)[1],1)%*%t(interx)
           inter1 = s0*inter1
           # }else{
           #   inter1 = s0*inter1
           # }
-
-
+          
+          
           mat_Xk[indic,] <- apply(inter1*(matrix(1,dim(s0)[1],1)%*%t(as.matrix(weights_x))),1,sum)
           var_Xk[indic,] <- apply((inter1 -  matrix(mat_Xk[indic,],dim(s0)[1],1)%*%matrix(1,1,dim(Xncb)[1]))^2*(matrix(1,dim(s0)[1],1)%*%t(as.matrix(weights_x))),1,sum)
           ## Rm_Y
           Ybarre = sum(intery*Yb*weights_y);
           mat_Yk[indic,1] <- Ybarre
           var_Yk[indic,1] <- sum(weights_y*(intery*Yb-Ybarre)^2)
-
+          
           indic= indic+1
-
-
+          
+          
         }
       }
-
+      
     }
-
-
+    
+    
     ind = NULL
     inds=0
     if(dimXc==1){
@@ -410,7 +411,7 @@ compute_radial <- function(sample1 = NULL,Xc_x,Xnc,Xc_y,Y,values,
       sel0_x = matrix( sel0_x,dim(Xc_xb)[1],1)
       sel0_y = matrix( sel0_y,dim(Xc_yb)[1],1)
     }
-
+    
     weights_xp0 =  matrix(weights_x[sel0_x],sum(sel0_x),1)
     weights_xp0 = weights_xp0/sum(weights_xp0)
     weights_yp0 =  matrix(weights_y[sel0_y],sum(sel0_y),1)
@@ -421,21 +422,21 @@ compute_radial <- function(sample1 = NULL,Xc_x,Xnc,Xc_y,Y,values,
     }else{
       mat_X0 <- sum(Xp0*weights_xp0)
     }
-
-
+    
+    
     Yp0 = Yb[sel0_y]
     Y0 = sum(Yp0*weights_yp0)
     grid_I = vector("list")
     #### vector of matrices of point estimate ratios.
     T_n = matrix(NA,1,dim(values)[1])
     cond_w = matrix(NA,1,dim(values)[1])
-
-
+    
+    
     ## statistic S bar k=1
     for(k in 1:dim(values)[1]){ ## for all the points of support of Xc
-
+      
       short=FALSE
-
+      
       ###################################################### select the sample conditional on the values of Xc
       if(dimXc==1){
         val =values[k,]
@@ -461,7 +462,7 @@ compute_radial <- function(sample1 = NULL,Xc_x,Xnc,Xc_y,Y,values,
       }
       weights_yp  =  weights_yp /sum( weights_yp )
       weights_xp =   weights_x[sel_x]
-
+      
       cond_w[1,k] <- sum(weights_xp)
       if(sum(weights_xp!=0)<=1){
         weights_xp=    weights_xp + 1/length( weights_xp)
@@ -474,19 +475,19 @@ compute_radial <- function(sample1 = NULL,Xc_x,Xnc,Xc_y,Y,values,
       # T_xy1 = min(n_x,n_y)
       T_n[1,k] =  T_xy1
       # T_n[1,k] =  T_xy1
-
+      
       ######################################################
       #####################################################
-
-
-
-
-
+      
+      
+      
+      
+      
       # Ybarre =  sum(Yb*weights_y)
       Xp_s = Xp
       weights_xp_s = weights_xp
       weights_yp_s = weights_yp
-
+      
       if(version == "first"){
         ### handle the potentially different size
         if(n_x > n_y){
@@ -501,7 +502,7 @@ compute_radial <- function(sample1 = NULL,Xc_x,Xnc,Xc_y,Y,values,
           weights_yp  =  weights_yp /sum( weights_yp )
         }
       }
-
+      
       if(is.null(grid) | is.null(eps_default0)){
         test0 = TRUE
       }else{
@@ -511,47 +512,47 @@ compute_radial <- function(sample1 = NULL,Xc_x,Xnc,Xc_y,Y,values,
           test0 = sum(is.na(eps_default0[k]))==0
         }
       }
-
+      
       if(dimXnc>1){
         mat_Xp <- colSums( Xp*(weights_xp%*%matrix(1,1,dim(Xp)[2])))
       }else{
         mat_Xp <- sum( Xp*weights_xp)
       }
       # Xk[k,]<-  mat_Xp
-
+      
       Dmat_Xk[k,] <- mat_Xp- mat_X0
-
+      
       Ybarre =  sum(Yp*weights_yp)
       Dmat_Yk[k,1] <- Ybarre- Y0
       # Yk[k] =   Ybarre
-
+      
       ##########  If checks passed, then compute the stat S_{eps} | Xc ###############
       if(sum(sel_x)> lim && sum(sel_y) >  lim && test0){
-
+        
         if(version == "second"){
-
+          
           if(ties==FALSE){
-
+            
             Ys0 = cbind(weights_yp,Yp-Ybarre)
             Ys1 = Ys0[order(Ys0[,2], decreasing = F),]
             indexes0 = Ys1[,1]>0
             Ysort = Ys1[ indexes0 ,2]
             weights_yp = Ys1[ indexes0 ,1]
             Iwy = cumsum(weights_yp)
-
+            
             if(length(Ysort)>1 & length(Iwy) > 2){
               for_critY = approxfun( c(0,Iwy) ,  c(0,cumsum(weights_yp*Ysort)), method = "linear" ,yleft = 0, yright=0 )
               grid_I_k =  sort(unique(Iwy), decreasing = F)
-
+              
               grid_I[[k]] <- grid_I_k
-
+              
             }else{
               short = TRUE
             }
-
+            
           }else{
-
-
+            
+            
             ##### alternative
             if(length(unique(Yp))>1){
               Ysort = Yp
@@ -559,13 +560,13 @@ compute_radial <- function(sample1 = NULL,Xc_x,Xnc,Xc_y,Y,values,
               FY = FY0[[1]]
               I_Wy = unique(as.numeric(FY0[[2]]))
               if(length(I_Wy)>2){
-
+                
                 resY = matrix(NA,length(I_Wy),1)
                 for(i in 1:length(I_Wy)){
                   resY[i] = sum( (Yp-Ybarre)*weights_yp*(FY(Yp)> I_Wy[i]  ))
                 }
                 for_critY = approxfun(c(0,I_Wy),c(0,resY) , method = "linear", yleft =0, yright=0)
-
+                
                 grid_I_k =  sort(I_Wy, decreasing = F)
                 # grid_I <- grid_I_k
                 grid_I[[k]] <- grid_I_k
@@ -576,25 +577,25 @@ compute_radial <- function(sample1 = NULL,Xc_x,Xnc,Xc_y,Y,values,
               short= TRUE
             }
           }
-
+          
           # cbind(resY,resY1)
-
+          
         }else{
-
-
+          
+          
           Ysort = sort(Yp-Ybarre)
           for_critY= cumsum(Ysort);
-
+          
           grid_I=NULL
-
+          
           grid_I =NULL
           grid_I_k =NULL
-
+          
           short= FALSE
         }
-
-
-
+        
+        
+        
         if(!short){
           if(meth=="min"){
             if(is.null(eps_default0)){
@@ -614,27 +615,27 @@ compute_radial <- function(sample1 = NULL,Xc_x,Xnc,Xc_y,Y,values,
               sam0_eps_default0= cbind(eps_default0[,k],sam0)
             }
           }
-
+          
           sam0_eps_default0 = cbind(1:dim(sam0_eps_default0)[1],sam0_eps_default0)
-
-
-
+          
+          
+          
           # x_eps0= sam0_eps_default0[2,]
           bsharp_beta2 <- na.omit(t(apply(sam0_eps_default0,1,compute_ratio,Xp=Xp,Yp= Ysort,for_critY=for_critY,
                                           dimXnc=dimXnc,weights_xp=weights_xp,weights_yp=weights_yp,version,
                                           grid_I = grid_I_k, ties = ties)))
-
+          
           if(dimXnc==1){
             mat_var_unc[k,] <- bsharp_beta2
             mat_var_low[k,] <- - rev(mat_var_unc[k,])
             bsharp_beta2_m  = rev(bsharp_beta2)
-
+            
             if(!is.null(R2bound)){ ##### to complete in dim  1.
-
-
+              
+              
               sam1 = cbind(1:dim(sam0)[1],-sam0)
-
-
+              
+              
               normY = sqrt(wtd.var(c(Ysort), weights_yp, normwt=TRUE))
               if(normY!=0){
                 r2bound_m <- na.omit(t(apply(sam1,1,compute_ratio_variance,Xp=Xp,Yp=Ysort/normY ,dimX2=dimXnc,
@@ -665,15 +666,15 @@ compute_radial <- function(sample1 = NULL,Xc_x,Xnc,Xc_y,Y,values,
               }
             }
             sam0_eps_default0_m = cbind(1:dim(sam0_eps_default0_m)[1],sam0_eps_default0_m)
-
+            
             bsharp_beta2_m <- na.omit(t(apply(sam0_eps_default0_m,1,compute_ratio,Xp=Xp,Yp= Ysort,for_critY=for_critY,
                                               dimXnc=dimXnc,weights_xp=weights_xp,weights_yp=weights_yp, version,
                                               grid_I =  grid_I_k, ties=ties)))
-
+            
             if(!is.null(R2bound)){
-
+              
               sam1 = cbind(1:dim(sam0)[1],-sam0)
-
+              
               normY = sqrt(wtd.var(c(Ysort), weights_yp, normwt=TRUE))
               # length(weights_yp)
               if(!is.na(normY))
@@ -683,9 +684,9 @@ compute_radial <- function(sample1 = NULL,Xc_x,Xnc,Xc_y,Y,values,
                   r2bound_M[k,] <- 1/r2bound_m^2
                 }
             }
-
+            
           }
-
+          
           ######################"
           # if(sum(bsharp_beta2==Inf))
           ind = c(ind,k)
@@ -697,51 +698,67 @@ compute_radial <- function(sample1 = NULL,Xc_x,Xnc,Xc_y,Y,values,
         }
       }
     }
-
-    mat_var_unc1<- mat_var_unc[ind ,]
+    
+    mat_var_unc1 <- mat_var_unc[ind ,]
     mat_var_unc1 <- matrix(mat_var_unc1,length(ind),dim(sam0_eps_default0)[1])
     # mat_var1 <-   mat_var[ind,]
     # mat_var1 <- matrix(mat_var1,length(ind),dim(sam0_eps_default0)[1])
     mat_var_low1 <-   mat_var_low[ind,]
     mat_var_low1 <- matrix(mat_var_low1,length(ind),dim(sam0_eps_default0)[1])
-
-
+    
+    
     # mat_var <- apply(  mat_var1,2,min)
     mat_var_low <- apply(  mat_var_low1,2,min)
     mat_var_unc <- apply(  mat_var_unc1,2,min)
     mat_var = mat_var_unc
-
+    
     if(!is.null(constraint)){
-
+      
       nb_eff =  dim(Xnc)[1] #floor(cond_w*dim(Xnc)[1])
-
+      
       # jj=1
       if(!is.null(eps_default0)){
-
+        
         for(jj in 1:dim(sam0)[1]){
-
-          u_n=1e-07
+          
+          u_n= 1e-07
           den = mat_Xk[,jj] +  sign(mat_Xk[,jj])*u_n^2
           ratios = (mat_Yk + u_n)/   den
-
+          
           for(kk in 1:length(ratios)){
-
+            
             if(!is.na(mat_Xk[kk,jj] )){
               ## possibly modify the upper bound
               if( mat_Xk[kk,jj] >=0){
                 ratios_plus <- ratios[kk]
                 cond = (min(mat_var[jj],ratios_plus) >= - mat_var_low[jj])
-                cond[is.na(cond)] = FALSE
+                if(modeNA){
+                  if(is.na(cond)){
+                    cond= FALSE
+                  }else{
+                    cond= TRUE
+                  }
+                }else{
+                  cond[is.na(cond)] = FALSE
+                }
                 if( cond ){
                   mat_var[jj] <- min(  mat_var[jj] ,   ratios_plus )
                 }
               }
-
+              
               ## possibly modify the lower bound
               if( mat_Xk[kk,jj] <=0){
                 ratios_minus <- ratios[kk]
                 cond = (- min(mat_var_low[jj] , - ratios_minus) <=  mat_var[jj])
-                cond[is.na(cond)] = FALSE
+                if(modeNA){
+                  if(is.na( cond)){
+                    cond= FALSE
+                  }else{
+                    cond= TRUE
+                  }
+                }else{
+                  cond[is.na(cond)] = FALSE
+                }
                 if( cond  ){
                   mat_var_low[jj] <- min(   mat_var_low[jj]  , -  ratios_minus)
                 }
@@ -750,12 +767,12 @@ compute_radial <- function(sample1 = NULL,Xc_x,Xnc,Xc_y,Y,values,
           }
         }
       }
-
-
+      
+      
     }
-
-
-
+    
+    
+    
     if(!is.null(nc_sign)){
       ee = eye(dimXnc)
       for(jj in 1:dimXnc){
@@ -786,15 +803,15 @@ compute_radial <- function(sample1 = NULL,Xc_x,Xnc,Xc_y,Y,values,
         }
       }
     }
-
+    
     mat_var_low2 <-  mat_var_low
     mat_var2 <- mat_var
-
+    
     if(!is.null(R2bound)){
       ee = eye(dimXnc)
-
+      
       r2bound_M1 <-  matrix(r2bound_M[ind,],length(ind),dim(r2bound_M)[2])
-
+      
       # r2bound_M1[abs(r2bound_M1)==Inf]=10^8
       cond_w1 <- cond_w[,ind]
       # if(!is.null(dim(r2bound_M1))){
@@ -807,12 +824,12 @@ compute_radial <- function(sample1 = NULL,Xc_x,Xnc,Xc_y,Y,values,
       r2bound_M1 <-   matrix(r2bound_M1[ind0,],sum(ind0),dim(r2bound_M1)[2]) #r2bound_M1[ind0,]
       EVX = cond_w1%*%( r2bound_M1)
       normY = sqrt(wtd.var(c(Yb), weights_y, normwt=TRUE))
-
+      
       if( R2bound >1){
         val =  sqrt((R2bound-1)*Rs*normY^2/EVX[1])
-
+        
         cond = (matrix(ee*nc_sign,1,dimXnc)%*%t(sam0))<0
-
+        
         # jj=1
         for(jj in 1:dim(sam0)[1]){
           if(!is.na( mat_var[jj]) && !is.na( mat_var_low[jj]) ){
@@ -821,7 +838,7 @@ compute_radial <- function(sample1 = NULL,Xc_x,Xnc,Xc_y,Y,values,
                 mat_var2[jj] =  NA
                 mat_var_low2[jj] = NA
               }else{ ##
-
+                
                 if(cond[jj]){ # negative side
                   mat_var2[jj] =   - (val + max(mat_var[jj],mat_var_low[jj]))/2
                   mat_var_low2[jj] =  (val + max(mat_var[jj],mat_var_low[jj]))/2
@@ -839,19 +856,19 @@ compute_radial <- function(sample1 = NULL,Xc_x,Xnc,Xc_y,Y,values,
             }
           }
         }
-
-
+        
+        
       }
-
+      
     }
-
-
+    
+    
     mat_var_low = mat_var_low2
     mat_var = mat_var2
-
-
+    
+    
   }else{
-
+    
     short=FALSE
     mat_var= matrix(NA,1,dim(sam0)[1])
     mat_var_unc= matrix(NA,1,dim(sam0)[1])
@@ -860,46 +877,46 @@ compute_radial <- function(sample1 = NULL,Xc_x,Xnc,Xc_y,Y,values,
       mat_Yk= matrix(NA,dim(values)[1],1)
       mat_Xk= matrix(NA,dim(values)[1],dimXnc)
     }
-
+    
     Xp=matrix(Xncb, dim(Xncb)[1] ,dimXnc )
     Yp = matrix(Yb, dim(Yb)[1],1)
     weights_yp =   weights_y/sum( weights_y)
     weights_xp =   weights_x/sum( weights_x )
-
+    
     n_x = dim(Xp)[1]
     n_y = dim(Yp)[1]
-
+    
     if(version=="first"){
-
+      
       ### handle the potentially different size
       if(n_x > n_y){
         sit = sample(1:n_x,n_y,replace = F)
         Xp = matrix(Xp[sit,],n_y,dimXnc)
         weights_xp =   weights_x[sit]
         weights_xp  =  weights_xp /sum( weights_xp )
-
+        
       }else if( n_y > n_x){
-
+        
         sit = sample(1:n_y,n_x,replace = F)
         Yp =Yp[sit]
         weights_yp =   weights_y[sit]
         weights_yp  =  weights_yp /sum( weights_yp )
       }
     }
-
+    
     # if(winsor ==TRUE){
     # qu=quantile(Yp,   max( 0.9, 1-2*log(length(Yp))/length(Yp)) )
     # Yp[Yp> qu] <- qu
     # }
-
+    
     if(version == "second"){
-
+      
       Ybarre = sum(Yp*weights_yp);
-
+      
       # ties = FALSE
       if(ties==FALSE){
-
-
+        
+        
         # Ybarre = sum(Yp*weights_yp);
         Ys0 = cbind(weights_yp,Yp-Ybarre)
         Ys1 = Ys0[order(Ys0[,2], decreasing = F),]
@@ -908,9 +925,9 @@ compute_radial <- function(sample1 = NULL,Xc_x,Xnc,Xc_y,Y,values,
         weights_yp = Ys1[ indexes0 ,1]
         for_critY = approxfun( c(0,cumsum(weights_yp)), c(0,cumsum(weights_yp*Ysort)) , method = "linear",yleft = 0, yright=0 )
         grid_I =  cumsum(weights_yp)
-
+        
       }else{
-
+        
         ##### alternative
         if(length(unique(Yp))>1){
           Ysort = Yp
@@ -924,38 +941,38 @@ compute_radial <- function(sample1 = NULL,Xc_x,Xnc,Xc_y,Y,values,
             }
             for_critY = approxfun(c(0,Iwy),pmax(0,c(0,resY)), method = "linear", yleft =0 , yright=0 )
             grid_I =  sort(Iwy, decreasing = F)
-
+            
           }else{
             short= TRUE
           }
-
-
+          
+          
         }else{
           short= TRUE
         }
       }
-
-
+      
+      
       # cbind(for_critY(Iwy),sav,for_critY0,for_critY0/sav,for_critY0/for_critY(Iwy))
-
-
+      
+      
     }else{
-
+      
       Ybarre = mean(Yp);
       Ysort = sort(Yp-Ybarre)
       for_critY= cumsum(Ysort);
       grid_I=NULL
     }
-
-
-
-
-
+    
+    
+    
+    
+    
     if(!is.null(values)){
       mat_Yk[k,1] <- Ybarre
       mat_Xk[k,] <- sum(Xp*weights_xp)
     }
-
+    
     if(!short){
       if(meth=="min"){
         # compute S(q)
@@ -976,20 +993,20 @@ compute_radial <- function(sample1 = NULL,Xc_x,Xnc,Xc_y,Y,values,
         }
         #
       }
-
+      
       sam0_eps_default0 = cbind(1:dim(sam0_eps_default0)[1],sam0_eps_default0)
-
+      
       mat_var <- na.omit(t(apply(sam0_eps_default0,1,compute_ratio,Xp=Xp,Yp= Ysort,for_critY=for_critY,
                                  dimXnc=dimXnc,weights_xp=weights_xp,weights_yp=weights_yp, version,
                                  grid_I = grid_I, ties = ties)))
-
+      
       mat_var_unc <-    mat_var
-
+      
       if(type=="both" | type=="low"){
         if(dimXnc==1){
           mat_var_low <-  - rev( mat_var)
           # bsharp_beta2_m  = rev(bsharp_beta2)
-
+          
         }else{
           # compute S(-q)
           if(is.null(eps_default0)){
@@ -1005,18 +1022,18 @@ compute_radial <- function(sample1 = NULL,Xc_x,Xnc,Xc_y,Y,values,
             }
           }
           sam0_eps_default0_m = cbind(1:dim(sam0_eps_default0_m)[1],sam0_eps_default0_m)
-
+          
           mat_var_low <- - na.omit(t(apply(sam0_eps_default0_m,1,compute_ratio,Xp=Xp,Yp= Ysort,for_critY=for_critY,
                                            dimXnc=dimXnc,weights_xp=weights_xp,weights_yp=weights_yp, version,
                                            grid_I = grid_I , ties = ties)))
-
+          
           # mat_var_low = matrix(NA,1,dim(sam0_eps_default0)[1])
-
+          
         }
       }
-
+      
       ind = 1
-
+      
       if(!is.null(nc_sign)){
         ee = eye(dimXnc)
         for(jj in 1:dimXnc){
@@ -1028,24 +1045,24 @@ compute_radial <- function(sample1 = NULL,Xc_x,Xnc,Xc_y,Y,values,
       }
     }
   }
-
-
+  
+  
   #### return the values of the stats Tinf/Tsup and S(q) for each q
   if(type=="both"){
     output <- vector("list")
     output[["upper"]] <- mat_var
     output[["lower"]] <- mat_var_low
-
+    
     # if(!is.null(R2bound)){
     #   output[["upper_r2"]] <- mat_var2
     #   output[["lower_r2"]] <- mat_var_low2
     # }
-
+    
     output[["unconstr"]] <- mat_var_unc
     if(!is.null(values)){
       output[["Ykmean"]] <- mat_Yk
       output[["Xkmean"]] <- mat_Xk
-
+      
       if(dimXnc==1){
         den =  wtd.var(Xncb, weights_x, normwt=TRUE)
         Yk = rep(0,dim(values)[1]-1)
@@ -1064,7 +1081,7 @@ compute_radial <- function(sample1 = NULL,Xc_x,Xnc,Xc_y,Y,values,
           Yk[k] <- sum(Yb[Xc_yb==k]* weights_yk, na.rm=T)
           Xk[k] <- sum(Xncb[Xc_xb==k]*weights_xk, na.rm=T)
         }
-
+        
         # den =  var(Xncb)
         # Yk = rep(0,dim(values)[1]-1)
         # Xk = rep(0,dim(values)[1]-1)
@@ -1079,28 +1096,28 @@ compute_radial <- function(sample1 = NULL,Xc_x,Xnc,Xc_y,Y,values,
         #   Xk[k] <- mean(Xncb[Xc_xb==k], na.rm=T)
         # }
         # # table(Xc_yb)
-
+        
         output[["Ykmean2"]] <- Yk
         output[["Xkmean2"]] <-  Xk
         output[["cov_ratio"]] <- rat
-
+        
         term1 = sum(rat*(Yk-Y0), na.rm=T)
         if(dimXnc==1){
           term2 = 1- sum(rat*(Xk-X0), na.rm=T)
         }### complete
-
+        
         output[["upper_agg"]] <-  term1 +  term2*mat_var
         output[["lower_agg"]] <-  term1 +  term2*mat_var_low
         output[["unconstr_agg"]] <-  term1 +  term2*mat_var_unc
       }
-
+      
       # output[["Xkvar"]] <- var_Xk
       output[["DYk"]] <- Dmat_Yk
       output[["DXk"]] <- Dmat_Xk
-
+      
       # output[["tests"]] <- tests
       output[["T_n"]] <- T_n
-
+      
     }
     if(!is.null(R2bound)){
       output[["Rs"]] <- Rs
@@ -1108,8 +1125,8 @@ compute_radial <- function(sample1 = NULL,Xc_x,Xnc,Xc_y,Y,values,
     # if(!is.null(constraint)){
     #   output[["ratio"]] <- ratios0
     # }
-
-
+    
+    
     #### return only the values of the stat Tinf for each q
   }else if(type=="low"){
     output <- mat_var_low
@@ -1117,7 +1134,7 @@ compute_radial <- function(sample1 = NULL,Xc_x,Xnc,Xc_y,Y,values,
     #### return only the values of the stat S(q) for each q
     output <- mat_var
   }
-
+  
   return(output)
-
+  
 }

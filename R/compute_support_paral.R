@@ -25,6 +25,7 @@
 #' @param R2bound the lower bound on the R2 of the long regression if any. Default is NULL.
 #' @param values_sel the selected values of Xc for the conditioning. Default is NULL.
 #' @param ties Boolean indicating if there are ties in the dataset. Default is FALSE.
+#' @param modeNA indicates if NA introduced if the interval is empty. Default is FALSE.
 #'
 #' @return
 #' the value of the support function in the specifed direction dir_nb.
@@ -34,7 +35,7 @@ compute_support_paral <- function(dir_nb , sam0,Xnc,  eps_default0, grid,dimXc,d
                                   nc_sign,refs0,meth,  T_xy ,
                                   bc,  version,
                                   R2bound=NULL,  values_sel=NULL,
-                                  ties= FALSE){
+                                  ties= FALSE,modeNA=FALSE){
   sam11 = sam0[dir_nb,]
   sam11[sam0[dir_nb,]==0] <- 1
   sam11[sam0[dir_nb,]!=0] <- 0
@@ -59,7 +60,7 @@ compute_support_paral <- function(dir_nb , sam0,Xnc,  eps_default0, grid,dimXc,d
     optf <-  optim(par= start ,  fn=objective_support, gr=NULL,   dir_nb=dir_nb,  sam0 = sam0, eps1= eps1,grid = grid, Xc_xb=NULL ,Xncb=Xncb,Xc_yb=NULL,Yb=Yb,
                    values=values, weights_x=weights_x,weights_y=weights_y, constraint= constraint, c_sign= c_sign,
                    nc_sign=nc_sign,refs0=refs0,meth=meth,  T_xy = T_xy ,
-                   bc=bc, version=version, R2bound= R2bound,  values_sel=values_sel,ties = ties,
+                   bc=bc, version=version, R2bound= R2bound,  values_sel=values_sel,ties = ties,modeNA=modeNA,
                    method="BFGS")
   }else{
 
@@ -72,7 +73,7 @@ compute_support_paral <- function(dir_nb , sam0,Xnc,  eps_default0, grid,dimXc,d
     optf <- optim(par= start, objective_support, gr=NULL,   dir_nb=dir_nb,  sam0 = sam0, eps1= eps1,grid = grid,Xc_xb=Xc_xb ,Xncb=Xncb,Xc_yb=Xc_yb,Yb=Yb,
                   values=values, weights_x=weights_x,weights_y=weights_y, constraint= constraint,  c_sign= c_sign,
                   nc_sign=nc_sign,refs0=refs0,meth=meth, T_xy = T_xy ,
-                  bc=bc, version=version,R2bound= R2bound,  values_sel=values_sel,ties = ties,
+                  bc=bc, version=version,R2bound= R2bound,  values_sel=values_sel,ties = ties,modeNA=modeNA,
                   method="BFGS")
 
   }

@@ -110,21 +110,21 @@ DGM_bounds <- function(Ldata, Rdata,
                        outside = FALSE,
                        meth="adapt",
                        modeNA =FALSE,
-                       version = "first",
-                       version_sel = "first",
+                       version = "second",
+                       version_sel = "second",
                        alpha=0.05,
                        projections = FALSE,
                        R2bound=NULL,
                        values_sel=NULL,
                        ties = FALSE,
                        mult = NULL,
-                       seed = 2131){
+                       seed =  2131){
 
 
   #### to draw the profile of epsilon
-  if(!is.null(mult)){ ## multiplier
-    Bsamp=0
-  }
+  # if(!is.null(mult)){ ## multiplier
+  #   Bsamp=0
+  # }
 
   ######
   kp=eps_default
@@ -175,13 +175,12 @@ DGM_bounds <- function(Ldata, Rdata,
   if(outside ==FALSE & nbCores>1){
     ### subsampling (B samples) parallel nbCores=10
     sfInit(parallel = TRUE, cpus = nbCores, type = "SOCK")
-    #sfExportAll( except = list_ex)
 
     sfExport( "Xc_x","Xnc", "Xc_y" ,"Y",
     "values", "sam0","refs0",
     "out_var",  "nc_var", "c_var", "constraint",
-    "nc_sign", "c_sign",
-    "nbCores",
+    "nc_sign", "c_sign",'compute_ratio',
+    "nbCores","sampling_rule",
     "eps_default", "nb_pts","Bsamp" ,"grid",
     "weights_x","weights_y","outside",  "meth",
     "modeNA", "version" ,
@@ -189,7 +188,7 @@ DGM_bounds <- function(Ldata, Rdata,
     "alpha" , "projections", "R2bound" ,"values_sel",
     "ties","dimXc","dimXnc","limit")
 
-    # sfExport('wtd.var','Norm','ceil','eye')
+    # sfExportAll( )
     # sfLibrary(R.matlab)
     # sfLibrary(pracma)
     # sfLibrary(Hmisc)
@@ -199,8 +198,12 @@ DGM_bounds <- function(Ldata, Rdata,
   hull_point=NULL
   hull_sharp=NULL
 
+  if(!is.null(seed)){
+    # seed1 = 2131
+    seed0 = floor(seed/100)
+  }
   # ks=rep(0,dim(sam0)[1],1)
-  seed0 = floor(seed/100)
+
   #################################################################################################################
   ##########  epsilon selection   #################################################################################
   if(!is.null(grid)){
@@ -219,13 +222,17 @@ DGM_bounds <- function(Ldata, Rdata,
       sam1 = sam00
     }
 
-    set.seed(seed)
+    if(!is.null(seed)){
+      set.seed(seed)
+    }
     eps_default0 =  select_epsilon(sam1,eps_default,  Xc_x,Xnc,Xc_y,Y,
                                    values,dimXc,dimXnc, nb_pts,lim =limit ,
                                    weights_x,weights_y, refs0, grid, constraint, c_sign, nc_sign, meth=meth,
                                    nbCores=nbCores,  version_sel = version_sel, alpha=alpha ,ties =ties)
 
-    set.seed(NULL)
+    if(!is.null(seed)){
+      set.seed(NULL)
+    }
 
   }else{
 
@@ -260,7 +267,7 @@ DGM_bounds <- function(Ldata, Rdata,
                                    nb_pts, sam0, eps_default0 ,grid,lim =limit,
                                    weights_x,weights_y, constraint,
                                    c_sign, nc_sign,refs0,type="both",meth=meth, version = version,
-                                   R2bound,values_sel,ties)
+                                   R2bound,values_sel,ties,modeNA)
 
     if(!is.null(R2bound)){
       Rs <-  mat_var_out1$Rs
@@ -292,27 +299,31 @@ DGM_bounds <- function(Ldata, Rdata,
     # Bsamp=2000
     #### replications numerical bootstrap or subsampling ############################################################################################
     if(Bsamp >0){
-      set.seed(seed0)
+      if(!is.null(seed)){
+        set.seed(seed0)
+      }
+
       if(nbCores>1){
         res0 <- sfLapply(1:Bsamp, compute_radial, Xc_x,Xnc,Xc_y,Y,values,dimXc,dimXnc,nb_pts,
                          sam0, eps_default0,grid,lim =limit ,
                          weights_x,   weights_y, constraint ,c_sign , nc_sign,refs0,type="both",meth=meth,
-                         version = version, R2bound,values_sel,ties )
+                         version = version, R2bound,values_sel,ties,modeNA  )
 
       }else{
 
         res0 <- lapply(1:Bsamp, compute_radial, Xc_x,Xnc,Xc_y,Y,
                        values,dimXc,dimXnc,nb_pts,sam0, eps_default0,grid,lim =limit ,
                        weights_x,   weights_y, constraint ,c_sign , nc_sign,refs0,type="both",meth=meth,
-                       version = version, R2bound,values_sel,ties  )
+                       version = version, R2bound,values_sel,ties,modeNA  )
       }
 
       # compute_radial(1, Xc_x,Xnc,Xc_y,Y,
       # values,dimXc,dimXnc,nb_pts,sam0, eps_default0,grid,lim =limit ,
       # weights_x,   weights_y, constraint ,c_sign , nc_sign,refs0,type="both",meth=meth,
       # version = version, R2bound,values_sel,ties  )
-      #
-      set.seed(NULL)
+      if(!is.null(seed)){
+         set.seed(NULL)
+      }
 
 
       mat_varb = matrix(0,Bsamp,dim(sam0)[1])
@@ -344,7 +355,7 @@ DGM_bounds <- function(Ldata, Rdata,
 
       T_xy = (n_y/(n_x+n_y))*n_x
       n_xy = min(n_x,n_y)
-      bs = ceil(sampling_rule(T_xy))
+      bs = floor(sampling_rule(T_xy))+1
       bs0 = sqrt(bs/T_xy)
 
       #### upper bound without constraints
@@ -662,7 +673,7 @@ DGM_bounds <- function(Ldata, Rdata,
                                     nb_pts, sam0, eps_default0, grid,lim =limit,
                                     weights_x,weights_y, constraint,
                                     c_sign =c_sign, nc_sign,refs0,type="both",meth=meth, bc=TRUE,
-                                    version = version, R2bound,values_sel,ties)
+                                    version = version, R2bound,values_sel,ties,modeNA )
 
     hull_point[["support"]] <-      mat_var_out1
 
@@ -670,14 +681,16 @@ DGM_bounds <- function(Ldata, Rdata,
       # mat_var_out1
       Bsamp1 = Bsamp
 
-      set.seed(seed0)
+      if(!is.null(seed)){
+        set.seed(seed0)
+      }
       # start_time <- Sys.time()
       if(nbCores>1){
         res0 <- sfLapply(1:Bsamp1, compute_support,Xc_x,Xnc,Xc_y,Y,values,dimXc,dimXnc,nb_pts,sam0, eps_default0,
                          grid,lim =limit ,
                          weights_x,   weights_y, constraint,
                          c_sign = c_sign, nc_sign,refs0,type="both",meth=meth,
-                         bc=TRUE, version = version, R2bound,values_sel,ties)
+                         bc=TRUE, version = version, R2bound,values_sel,ties,modeNA )
 
 
       }else{
@@ -685,21 +698,22 @@ DGM_bounds <- function(Ldata, Rdata,
                        grid,lim =limit ,
                        weights_x,   weights_y, constraint,
                        c_sign = c_sign, nc_sign,refs0,type="both",meth=meth,
-                       bc=TRUE, version = version,R2bound,values_sel,ties)
+                       bc=TRUE, version = version,R2bound,values_sel,ties,modeNA )
       }
       mat_varb = matrix(0,Bsamp1,dim(sam0)[1])
       for(b in 1:Bsamp1){
         mat_varb[b,] = res0[[b]][,3]
       }
-
-      set.seed(NULL)
+      if(!is.null(seed)){
+        set.seed(NULL)
+      }
       n_x = dim(Xnc)[1]
       n_y = dim(Y)[1]
       #### subsampling
       T_xy=n_x*(n_y/(n_x+n_y))
       n_xy = min(n_x,n_y)
 
-      bs = ceil(sampling_rule(T_xy))
+      bs = floor(sampling_rule(T_xy))+1
       bs0 = sqrt(bs/T_xy)
       mat_var_out =  mat_var_out1[,3] -   apply(mat_varb -  matrix(1,dim(mat_varb)[1],1)%*% mat_var_out1[,3],2,q05)* bs0
 

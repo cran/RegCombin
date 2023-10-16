@@ -30,7 +30,8 @@ compute_support(
   version = "first",
   R2bound = NULL,
   values_sel = NULL,
-  ties = FALSE
+  ties = FALSE,
+  modeNA = FALSE
 )
 }
 \arguments{
@@ -85,6 +86,8 @@ compute_support(
 \item{values_sel}{the selected values of Xc for the conditioning. Default is NULL.}
 
 \item{ties}{Boolean indicating if there are ties in the dataset. Default is FALSE.}
+
+\item{modeNA}{indicates if NA introduced if the interval is empty. Default is FALSE.}
 }
 \value{
 a matrix containing the considered directions and the computed value of the support function.

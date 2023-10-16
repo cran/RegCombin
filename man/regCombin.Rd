@@ -23,23 +23,25 @@ regCombin(
   R2bound = NULL,
   projections = FALSE,
   unchanged = FALSE,
-  ties = FALSE
+  ties = FALSE,
+  seed = 2131,
+  mult = NULL
 )
 }
 \arguments{
-\item{Ldata}{a dataset including Y and possibly X_c=(X_{c,1},...,X_{c,q}). X_c must be finitely supported.}
+\item{Ldata}{a dataset including Y and possibly X_c=(X_c1,...,X_cq). X_c must be finitely supported.}
 
-\item{Rdata}{a dataset including X_{nc} and the same variables X_{c} as in Ldata.}
+\item{Rdata}{a dataset including X_nc and the same variables X_c as in Ldata.}
 
 \item{out_var}{the label of the outcome variable Y.}
 
-\item{nc_var}{the labels of the regressors X_{nc}.}
+\item{nc_var}{the labels of the regressors X_nc.}
 
 \item{c_var}{the labels of the regressors X_c (if any).}
 
-\item{constraint}{a vector of size q indicating the type of constraints (if any) on the function f(x_{c,1},...,x_{c,q}) for k=1,...,q:  "convex", "concave", "nondecreasing", "nonincreasing", "nondecreasing_convex", "nondecreasing_concave", "nonincreasing_convex", "nonincreasing_concave", or NA for no constraint. Default is NULL, namely no constraints at all.}
+\item{constraint}{a vector of size q indicating the type of constraints (if any) on the function f(x_c1,...,x_cq) for k=1,...,q:  "convex", "concave", "nondecreasing", "nonincreasing", "nondecreasing_convex", "nondecreasing_concave", "nonincreasing_convex", "nonincreasing_concave", or NA for no constraint. Default is NULL, namely no constraints at all.}
 
-\item{nc_sign}{a vector of size p indicating sign restrictions on each of the p coefficients of X_{nc}. For each component, -1 corresponds to a minus sign, 1 to a plus sign and 0 to no constraint. Default is NULL, namely no  constraints at all.}
+\item{nc_sign}{a vector of size p indicating sign restrictions on each of the p coefficients of X_nc. For each component, -1 corresponds to a minus sign, 1 to a plus sign and 0 to no constraint. Default is NULL, namely no  constraints at all.}
 
 \item{c_sign}{same as nc_sign but for X_c (accordingly, it is a vector of size q).}
 
@@ -59,11 +61,15 @@ regCombin(
 
 \item{R2bound}{the lower bound on the R2 of the long regression if any. Default is NULL.}
 
-\item{projections}{a boolean indicating if the identified set and confidence intervals on beta_{0k} for k=1,...,p are computed (TRUE), rather than the identified set and confidence region of beta_0 (FALSE). Default is FALSE.}
+\item{projections}{a boolean indicating if the identified set and confidence intervals on beta_0k for k=1,...,p are computed (TRUE), rather than the identified set and confidence region of beta_0 (FALSE). Default is FALSE.}
 
 \item{unchanged}{a boolean indicating if the categories based on X_c must be kept unchanged (TRUE). Otherwise (FALSE), a thresholding approach is taken imposing that each value appears more than 10 times in both datasets and represents more than 0.01 per cent of the pooled dataset (of size n_X+n_Y). Default is FALSE.}
 
 \item{ties}{a boolean indicating if there are ties in the dataset. If not (FALSE), computation is faster. Default is FALSE.}
+
+\item{seed}{to avoid fixinx the seed for the subsampling, set to NULL. Otherwise 2131.}
+
+\item{mult}{a list of multipliers of our selected epsilon to look at the robustness of the point estimates with respect to it. Default is NULL}
 }
 \value{
 Use summary_regCombin for a user-friendly print of the estimates. Returns a list containing, in order:

@@ -1,6 +1,6 @@
 Package: RegCombin
 Title: Partially Linear Regression under Data Combination
-Version: 0.3.1
+Version: 0.4.1
 Authors@R: c(person("Xavier", "D'Haultfoeuille", email = "xavier.dhaultfoeuille@ensae.fr", role = c("aut")),
     person("Christophe", "Gaillac", email = "christophe.gaillac@economics.ox.ac.uk", role = c("aut", "cre")), 
     person("Arnaud", "Maurel", email = "arnaud.maurel@duke.edu", role = c("aut")))
@@ -11,10 +11,10 @@ Suggests: knitr, rmarkdown
 RoxygenNote: 7.2.3
 Imports: dplyr,kableExtra,snowfall,RationalExp,Hmisc,geometry,pracma
 NeedsCompilation: no
-Packaged: 2023-09-07 16:42:05 UTC; chris
+Packaged: 2023-10-16 10:37:40 UTC; chris
 Author: Xavier D'Haultfoeuille [aut],
   Christophe Gaillac [aut, cre],
   Arnaud Maurel [aut]
 Maintainer: Christophe Gaillac <christophe.gaillac@economics.ox.ac.uk>
 Repository: CRAN
-Date/Publication: 2023-09-07 17:00:06 UTC
+Date/Publication: 2023-10-16 12:20:02 UTC

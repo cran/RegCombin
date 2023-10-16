@@ -23,6 +23,7 @@
 #' @param R2bound the lower bound on the R2 of the long regression if any. Default is NULL.
 #' @param values_sel the selected values of Xc for the conditioning. Default is NULL.
 #' @param ties Boolean indicating if there are ties in the dataset. Default is FALSE.
+#' @param modeNA indicates if NA introduced if the interval is empty. Default is FALSE.
 #'
 #' @return
 #' the value the support function
@@ -35,7 +36,7 @@ objective_support <- function(x,dir_nb,sam0, eps1,
                               c_sign, nc_sign,refs0,meth="adapt", T_xy ,bc=FALSE,
                               version="first",
                               R2bound=NULL,  values_sel=NULL,
-                              ties = FALSE){
+                              ties = FALSE,modeNA=FALSE){
 
   # enforce the constraint q'e=1
   sam1 = sam0[dir_nb,]
@@ -66,7 +67,7 @@ objective_support <- function(x,dir_nb,sam0, eps1,
                                    nb_pts,sam0= matrix(1,1,1), eps_default0=eps1, grid,lim,
                                    weights_x,weights_y,constraint,
                                    c_sign, nc_sign,refs0,type="both",meth=meth, version =version,R2bound=R2bound,
-                                   values_sel=values_sel, ties =ties)
+                                   values_sel=values_sel, ties =ties,modeNA=modeNA)
 
 
   }else{
@@ -76,7 +77,7 @@ objective_support <- function(x,dir_nb,sam0, eps1,
                                    nb_pts,sam0= matrix(1,1,1), eps_default0=eps1, grid ,lim,
                                    weights_x,weights_y,constraint,
                                    c_sign, nc_sign,refs0,type="both",meth=meth, version =version,R2bound=R2bound,
-                                   values_sel=values_sel, ties =ties )
+                                   values_sel=values_sel, ties =ties,modeNA=modeNA )
 
   }
 

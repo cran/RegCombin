@@ -27,6 +27,7 @@
 #' @param R2bound the lower bound on the R2 of the long regression if any. Default is NULL.
 #' @param values_sel the selected values of Xc for the conditioning. Default is NULL.
 #' @param ties Boolean indicating if there are ties in the dataset. Default is FALSE.
+#' @param modeNA indicates if NA introduced if the interval is empty. Default is FALSE.
 #'
 #' @return
 #' a matrix containing the considered directions and the computed value of the support function.
@@ -40,7 +41,7 @@ compute_support <- function(sample1 = NULL,Xc_x,Xnc,Xc_y,Y,
                             refs0=NULL,type="both",meth="adapt", bc = FALSE,
                             version="first",
                             R2bound=NULL,  values_sel=NULL,
-                            ties=FALSE){
+                            ties=FALSE,modeNA=FALSE){
   mat_var_low= NULL
   if(is.null(weights_x)){
     weights_x= rep(1/dim(Xnc)[1],dim(Xnc)[1])
@@ -59,7 +60,7 @@ compute_support <- function(sample1 = NULL,Xc_x,Xnc,Xc_y,Y,
     n_xy = min(n_x,n_y)
     T_xy  = (n_y/(n_x+n_y))*n_x
 
-    bs = floor(sampling_rule(T_xy))
+    bs = floor(sampling_rule(T_xy))+1
 
     if(version !="first"){
 
@@ -142,13 +143,13 @@ compute_support <- function(sample1 = NULL,Xc_x,Xnc,Xc_y,Y,
     out1 = lapply(1:dim(sam0)[1],compute_support_paral,sam0,Xnc,  eps_default0, grid,dimXc,dimXnc,Xc_xb= Xc_xb ,Xncb,Xc_yb= Xc_yb,Yb,
                   values, weights_x,weights_y, constraint , c_sign,
                   nc_sign,refs0,meth,   T_xy  ,
-                  bc, version, R2bound,  values_sel,ties)
+                  bc, version, R2bound,  values_sel,ties,modeNA)
 
   }else{
     out1 =  sfLapply(1:dim(sam0)[1],compute_support_paral,sam0,Xnc,  eps_default0, grid,dimXc,dimXnc,Xc_xb= Xc_xb ,Xncb,Xc_yb= Xc_yb,Yb,
                      values,weights_x,weights_y, constraint , c_sign,
                      nc_sign,refs0,meth, T_xy ,
-                     bc,  version, R2bound,  values_sel,ties)
+                     bc,  version, R2bound,  values_sel,ties,modeNA)
   }
   out11 <- unlist(out1)
 

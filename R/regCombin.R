@@ -1,12 +1,12 @@
 #' Function computing all the different bounds : DGM and/or Variance
 #'
-#' @param Ldata a dataset including Y and possibly X_c=(X_{c,1},...,X_{c,q}). X_c must be finitely supported.
-#' @param Rdata a dataset including X_{nc} and the same variables X_{c} as in Ldata.
+#' @param Ldata a dataset including Y and possibly X_c=(X_c1,...,X_cq). X_c must be finitely supported.
+#' @param Rdata a dataset including X_nc and the same variables X_c as in Ldata.
 #' @param out_var the label of the outcome variable Y.
-#' @param nc_var the labels of the regressors X_{nc}.
+#' @param nc_var the labels of the regressors X_nc.
 #' @param c_var the labels of the regressors X_c (if any).
-#' @param constraint a vector of size q indicating the type of constraints (if any) on the function f(x_{c,1},...,x_{c,q}) for k=1,...,q:  "convex", "concave", "nondecreasing", "nonincreasing", "nondecreasing_convex", "nondecreasing_concave", "nonincreasing_convex", "nonincreasing_concave", or NA for no constraint. Default is NULL, namely no constraints at all.
-#' @param nc_sign a vector of size p indicating sign restrictions on each of the p coefficients of X_{nc}. For each component, -1 corresponds to a minus sign, 1 to a plus sign and 0 to no constraint. Default is NULL, namely no  constraints at all.
+#' @param constraint a vector of size q indicating the type of constraints (if any) on the function f(x_c1,...,x_cq) for k=1,...,q:  "convex", "concave", "nondecreasing", "nonincreasing", "nondecreasing_convex", "nondecreasing_concave", "nonincreasing_convex", "nonincreasing_concave", or NA for no constraint. Default is NULL, namely no constraints at all.
+#' @param nc_sign a vector of size p indicating sign restrictions on each of the p coefficients of X_nc. For each component, -1 corresponds to a minus sign, 1 to a plus sign and 0 to no constraint. Default is NULL, namely no  constraints at all.
 #' @param c_sign same as nc_sign but for X_c (accordingly, it is a vector of size q).
 #' @param weights_x the sampling weights for the dataset Rdata. Default is NULL.
 #' @param weights_y  the sampling weights for the dataset Ldata. Default is NULL.
@@ -16,9 +16,11 @@
 #' @param alpha one minus the nominal coverage of the confidence intervals. Default is 0.05.
 #' @param eps_default a pre-specified value of epsilon used only if the grid search for selecting the value of epsilon is not performed, i.e, when grid is NULL. Default is 0.5.
 #' @param R2bound the lower bound on the R2 of the long regression if any. Default is NULL.
-#' @param projections a boolean indicating if the identified set and confidence intervals on beta_{0k} for k=1,...,p are computed (TRUE), rather than the identified set and confidence region of beta_0 (FALSE). Default is FALSE.
+#' @param projections a boolean indicating if the identified set and confidence intervals on beta_0k for k=1,...,p are computed (TRUE), rather than the identified set and confidence region of beta_0 (FALSE). Default is FALSE.
 #' @param unchanged a boolean indicating if the categories based on X_c must be kept unchanged (TRUE). Otherwise (FALSE), a thresholding approach is taken imposing that each value appears more than 10 times in both datasets and represents more than 0.01 per cent of the pooled dataset (of size n_X+n_Y). Default is FALSE.
 #' @param ties a boolean indicating if there are ties in the dataset. If not (FALSE), computation is faster. Default is FALSE.
+#' @param seed to avoid fixinx the seed for the subsampling, set to NULL. Otherwise 2131.
+#' @param mult a list of multipliers of our selected epsilon to look at the robustness of the point estimates with respect to it. Default is NULL
 #'
 #' @return  Use summary_regCombin for a user-friendly print of the estimates. Returns a list containing, in order:
 #' - DGM_complete or Variance_complete : the complete outputs of the functions DGM_bounds or Variance_bounds.
@@ -86,7 +88,9 @@ regCombin <- function(Ldata, Rdata,
                       R2bound=NULL,
                       projections= FALSE,
                       unchanged=FALSE,
-                      ties = FALSE){
+                      ties = FALSE,
+                      seed = 2131,
+                      mult = NULL){
 
 
   ## if no weights, same data sizes, and no ties, faster estimation.
@@ -200,24 +204,24 @@ regCombin <- function(Ldata, Rdata,
     c_sign = c_sign[(select_values-1)[-c(1)]]
 
     ### V1: redefine first class as {1, select_values}
-    Xc_x = matrix(0,dim(Ldata)[1],1)
-    Xc_y = matrix(0,dim(Rdata)[1],1)
+    Xc_x = matrix(0,dim(Rdata)[1],1)
+    Xc_y = matrix(0,dim(Ldata)[1],1)
     ind=1
     for(j in select_values[-c(1)]){
       if(dimXc==1){
         val = values[j,]
-        sel_x = (Ldata[,c_var]==val)
-        sel_y = (Rdata[,c_var]==val)
+        sel_x = (Rdata[,c_var]==val)
+        sel_y = (Ldata[,c_var]==val)
       }else{
         val = t(as.matrix(values[j,]))
-        sel_x = matrix(1,dim(Ldata)[1],1)
-        sel_y = matrix(1,dim(Rdata)[1],1)
+        sel_x = matrix(1,dim(Rdata)[1],1)
+        sel_y = matrix(1,dim(Ldata)[1],1)
         for(ddd in 1:dimXc){
-          sel_x =  sel_x & (Ldata[,c_var[ddd]]==val[ddd])
-          sel_y =  sel_y & (Rdata[,c_var[ddd]]==val[ddd])
+          sel_x =  sel_x & (Rdata[,c_var[ddd]]==val[ddd])
+          sel_y =  sel_y & (Ldata[,c_var[ddd]]==val[ddd])
         }
-        sel_x = matrix( sel_x,dim(Ldata)[1],1)
-        sel_y = matrix( sel_y,dim(Rdata)[1],1)
+        sel_x = matrix( sel_x,dim(Rdata)[1],1)
+        sel_y = matrix( sel_y,dim(Ldata)[1],1)
       }
       Xc_x[sel_x]=ind
       Xc_y[sel_y]=ind
@@ -229,9 +233,9 @@ regCombin <- function(Ldata, Rdata,
     colnames(Xc_x) <- "Xc"
     Rdata0 <- Rdata
     Ldata0 <- Ldata
-    Rdata <- as.data.frame(cbind(Rdata[,nc_var],   Xc_y))
+    Rdata <- as.data.frame(cbind(Rdata[,nc_var],   Xc_x))
     colnames(Rdata) <- c(nc_var,"Xc")
-    Ldata <- as.data.frame(cbind(Ldata[,out_var],   Xc_x))
+    Ldata <- as.data.frame(cbind(Ldata[,out_var],   Xc_y))
     colnames(Ldata) <- c(out_var,"Xc")
     dimXc_old = dimXc
     c_var_old = c_var
@@ -263,20 +267,20 @@ regCombin <- function(Ldata, Rdata,
     refs0 = NULL
   }
 
-
-  if(dimXc==0){
-    if(dimXnc>1){
-      nb_pts=0.5
-    }else{
-      nb_pts=1
-    }
+  #
+  #   if(dimXc==0){
+  #     if(dimXnc>1){
+  #       nb_pts=0.6
+  #     }else{
+  #       nb_pts=1
+  #     }
+  #   }else{
+  if(dimXnc>1){
+    nb_pts=0.6
   }else{
-    if(dimXnc>1){
-      nb_pts=0.5
-    }else{
-      nb_pts=1
-    }
+    nb_pts=1
   }
+  # }
 
   #### iterate over the possibly selected methods ##############################
 
@@ -299,7 +303,9 @@ regCombin <- function(Ldata, Rdata,
                         modeNA =modeNA, version =version,
                         version_sel =  version_sel,
                         alpha = alpha , projections=projections, R2bound ,values_sel=  values_sel,
-                        ties =  ties)
+                        ties =  ties, mult=mult, seed = seed)
+
+
 
       output[[paste0(method,"_complete")]] <-  out
 

@@ -59,7 +59,8 @@ select_epsilon <- function(sam1,eps_default, Xc_x,Xnc,Xc_y,Y,
     n_xy = min(n_x,n_y)
     T_xy  = (n_y/(n_x+n_y))*n_x
 
-    eps0 = nb_pts*pmax(9,log(T_xy))
+    eps0 = nb_pts*pmax(7,log(T_xy))
+    # eps0 = nb_pts*pmax(9,log(T_xy))
     eps_grid = seq(min(C0,eps0/T_xy^(3/4)),C0,length.out=grid)
 
     eps1= matrix(0.5,dim(sam1)[1],1)
@@ -102,7 +103,7 @@ select_epsilon <- function(sam1,eps_default, Xc_x,Xnc,Xc_y,Y,
     }
     S_e = matrix(1,Bsamp0,1)%*%mat_var_out$upper
 
-    b0 = ceil(sampling_rule(T_xy))
+    b0 = floor(sampling_rule(T_xy))+1
     bs0 = sqrt( b0/T_xy)
     vart2_v=mat_var_out$upper - apply((mat_varb -  S_e)*  bs0,2,q05)
 
@@ -220,7 +221,7 @@ select_epsilon <- function(sam1,eps_default, Xc_x,Xnc,Xc_y,Y,
 
         S_e = matrix(1,Bsamp0,1)%*%mat_var_out$upper
 
-        b0 = ceil(sampling_rule(T_xy))
+        b0 = floor(sampling_rule(T_xy))+1
         bs0 = sqrt( b0/ T_xy)
         vart2_v=mat_var_out$upper - apply((mat_varb -  S_e)*  bs0,2,q05)
 
